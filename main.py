@@ -20,7 +20,6 @@ from settings import *
 import seaborn as sns
 import pandas as pd
 
-from argparse import ArgumentParser
 from evaluate import evaluate_v1
 
 
