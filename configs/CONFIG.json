@@ -1,0 +1,20 @@
+{
+  "cuda": true,
+  "dataset": {
+    "name": "2D_smote_mi",
+    "type": "np",
+    "n_worker": 0
+  },
+  "model": {
+    "name": "CNN",
+    "trainable": 1,
+    "epoch": 10,
+    "batch_size": 256,
+    "optim": "Adam",
+    "lr": 0.01,
+    "min_lr": 0.0001,
+    "patience": 5,
+    "factor": 0.1,
+    "scheduler": "ExponentialLR"
+  }
+}
