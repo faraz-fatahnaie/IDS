@@ -1,3 +1,4 @@
 dataset/NSL_KDD/file
 session/
 **/__pycache__/
+.idea
