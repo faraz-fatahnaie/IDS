@@ -15,6 +15,11 @@
     "min_lr": 0.0001,
     "patience": 5,
     "factor": 0.1,
-    "scheduler": "ExponentialLR"
+    "scheduler": "ExponentialLR",
+    "loss": "CrossEntropyLoss",
+    "weight_decay": 0.0001,
+    "early_stop": 10,
+    "gamma": 0.5,
+    "regularization": ""
   }
 }
