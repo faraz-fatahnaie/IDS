@@ -7,7 +7,7 @@ def setting(config_file=None):
     BASE_DIR = Path(__file__).resolve().parent.parent
 
     if config_file is None:
-        config_name = 'CONFIG1'  # config file name in config dir
+        config_name = 'CONFIG'  # config file name in config dir
         config_dir = BASE_DIR.joinpath('configs')
         config_file = open(f'{config_dir}/{config_name}.json')
         config_file = json.load(config_file)
