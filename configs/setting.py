@@ -13,10 +13,15 @@ def setting(config_file=None):
         config_file = json.load(config_file)
 
     # DATASET_DIR = BASE_DIR.joinpath('dataset')
-    # DATASET_NAME = config_file['dataset']['name']
-    # DATASET_PATH = DATASET_DIR.joinpath(DATASET_NAME)
-    config['DATASET_PATH'] = '/home/faraz/PycharmProjects/IDS/dataset/NSL_KDD/file/preprocessed'
+    config['DATASET_NAME'] = config_file['dataset']['name']
     config['DATASET_TYPE'] = config_file['dataset']['type']
+    config['CLASSIFICATION_MODE'] = config_file['dataset']['classification_mode']
+    # DATASET_PATH = DATASET_DIR.joinpath(DATASET_NAME)
+    if config['DATASET_NAME'] == 'NSL_KDD':
+        config['DATASET_PATH'] = '/home/faraz/PycharmProjects/IDS/dataset/NSL_KDD/file/preprocessed'
+    elif config['DATASET_NAME'] == 'UNSW_NB15':
+        config['DATASET_PATH'] = '/home/faraz/PycharmProjects/IDS/dataset/UNSW_NB15/file/preprocessed'
+
 
     config['NUM_WORKER'] = config_file['dataset']['n_worker']
     config['MODEL_NAME'] = config_file['model']['name']
