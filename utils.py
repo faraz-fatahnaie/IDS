@@ -4,11 +4,24 @@ from sklearn import metrics
 import numpy as np
 from numpy import ndarray
 
+from pyDeepInsight.pyDeepInsight import ImageTransformer
+from pyDeepInsight.pyDeepInsight.utils import Norm2Scaler
+from sklearn.manifold import TSNE
 
-def parse_data(df, mode='np'):
-    classes = ['Dos', 'Probe', 'R2L', 'U2R', 'normal']
+
+def parse_data(df, dataset_name: str, mode: str = 'np', classification_mode: str = 'binary'):
+    classes = []
+    if classification_mode == 'binary':
+        classes = df.columns[-1:]
+    elif classification_mode == 'multi':
+        if dataset_name == 'NSL_KDD':
+            classes = df.columns[-5:]
+        elif dataset_name == 'UNSW_NB15':
+            classes = df.columns[-10:]
+
+    assert classes is not None, 'Something Wrong!!\nno class columns could be extracted from dataframe'
     glob_cl = set(range(len(df.columns)))
-    cl_idx = set([df.columns.get_loc(cl) for cl in classes])
+    cl_idx = set([df.columns.get_loc(c) for c in list(classes)])
     target_feature_idx = list(glob_cl.difference(cl_idx))
     cl_idx = list(cl_idx)
     dt = df.iloc[:, target_feature_idx]
@@ -18,6 +31,30 @@ def parse_data(df, mode='np'):
         return dt.to_numpy(), lb.to_numpy()
     elif mode == 'df':
         return dt, lb
+
+
+def deepinsight(x: ndarray, y: ndarray, pixel_size: tuple = (11, 11)):
+    distance_metric = 'cosine'
+    pixel_size = pixel_size
+
+    reducer = TSNE(
+        n_components=2,
+        metric=distance_metric,
+        init='random',
+        learning_rate='auto',
+        n_jobs=-1
+    )
+
+    it = ImageTransformer(
+        feature_extractor=reducer,
+        pixels=pixel_size)
+
+    ln = Norm2Scaler()
+    x_norm = ln.fit_transform(x)
+    it.fit(x, y=y, plot=False)
+    x_transformed = it.transform(x)
+
+    return x_transformed[:, :, :, 0], it, ln
 
 
 def metrics_evaluate(true_label: ndarray, pred_label: ndarray) -> dict:
