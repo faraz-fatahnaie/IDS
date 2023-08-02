@@ -15,14 +15,15 @@ from torch.utils.tensorboard import SummaryWriter
 import torchvision.transforms as transforms
 from tqdm import tqdm
 
-from utils import parse_data
+from utils import parse_data, deepinsight
 
 from configs.setting import setting
 import pandas as pd
 import numpy as np
 from sklearn.metrics import accuracy_score, confusion_matrix, cohen_kappa_score
 
-from models.SE import SE, SEForward
+from models.SE import SE
+from models.SP import SP
 from models.SK import SK
 from models.CBAM import CBAM
 from models.Residual import RB, ResNet, ResidualBlock
@@ -41,21 +42,21 @@ def setup(args: Namespace):
         if args.model_dir is None:
 
             config, config_file = setting()
+            TEMP_FILENAME = f"{config['DATASET_NAME']}-{config['CLASSIFICATION_MODE']}-{config['MODEL_NAME']}-{i}"
+            TEMP_PATH = BASE_DIR.joinpath(f"session/{TEMP_FILENAME}")
 
-            TEMP_PATH = BASE_DIR.joinpath(
-                f"session/{config['MODEL_NAME']}-{i}")
             if os.path.isdir(TEMP_PATH):
                 i += 1
             else:
                 flag = False
 
-                os.mkdir(BASE_DIR.joinpath(f"session/{config['MODEL_NAME']}-{i}"))
-                os.mkdir(BASE_DIR.joinpath(f"session/{config['MODEL_NAME']}-{i}/trained_models"))
-                SAVE_PATH_ = BASE_DIR.joinpath(f"session/{config['MODEL_NAME']}-{i}")
-                TRAINED_MODEL_PATH_ = BASE_DIR.joinpath(f"session/{config['MODEL_NAME']}-{i}/trained_models")
+                os.mkdir(BASE_DIR.joinpath(f"session/{TEMP_FILENAME}"))
+                os.mkdir(BASE_DIR.joinpath(f"session/{TEMP_FILENAME}/trained_models"))
+                SAVE_PATH_ = BASE_DIR.joinpath(f"session/{TEMP_FILENAME}")
+                TRAINED_MODEL_PATH_ = BASE_DIR.joinpath(f"session/{TEMP_FILENAME}/trained_models")
 
                 os.mkdir(BASE_DIR.joinpath(f'{SAVE_PATH_}/model_checkpoint'))
-                CHECKPOINT_PATH_ = SAVE_PATH_.joinpath(f"model_checkpoint/{config['MODEL_NAME']}-{i}.pt")
+                CHECKPOINT_PATH_ = SAVE_PATH_.joinpath(f"model_checkpoint/{TEMP_FILENAME}.pt")
 
                 with open(f'{SAVE_PATH_}/MODEL_CONFIG.json', 'w') as f:
                     json.dump(config_file, f)
@@ -73,27 +74,39 @@ def setup(args: Namespace):
             print('JSON CONFIG FILE LOADED')
             config, _ = setting(CONFIGS)
 
-    train_df = pd.read_csv(Path(config['DATASET_PATH']).joinpath('train.csv'))
-    x_train, y_train = parse_data(train_df)
-    # if config['DATASET_TYPE'] == 'np':
-    #     x_train = np.load(str(train_path) + '.npy')
-    #     print('train set loaded in numpy mode')
+    train_df = pd.read_csv(Path(config['DATASET_PATH']).joinpath('train_' + config['CLASSIFICATION_MODE'] + '.csv'))
+    test_df = pd.read_csv(Path(config['DATASET_PATH']).joinpath('test_' + config['CLASSIFICATION_MODE'] + '.csv'))
 
-    print(f'train shape: x=>{x_train.shape}, y=>{y_train.shape}')
+    X_train, y_train = parse_data(train_df, dataset_name=config['DATASET_NAME'], mode=config['DATASET_TYPE'],
+                                  classification_mode=config['CLASSIFICATION_MODE'])
+    X_val, y_val = parse_data(test_df, dataset_name=config['DATASET_NAME'], mode=config['DATASET_TYPE'],
+                              classification_mode=config['CLASSIFICATION_MODE'])
+
+    # X_train, image_transformer, norm_scaler = deepinsight(X_train, y_train)
+    # X_val = image_transformer.transform(norm_scaler.transform(X_val))[:, :, :, 0]
+
+    print(f'train shape: x=>{X_train.shape}, y=>{y_train.shape}')
+    print(f'train shape: x=>{X_val.shape}, y=>{y_val.shape}')
 
     train_ld = DataLoader(
-        data_utils.TensorDataset(torch.tensor(x_train.reshape((-1, 1, 11, 11))), torch.tensor(y_train)),
+        data_utils.TensorDataset(torch.tensor(X_train.reshape((-1, 1, 14, 14))), torch.tensor(y_train)),
         batch_size=config['BATCH_SIZE'],
         num_workers=config['NUM_WORKER'],
         shuffle=True)
 
+    val_ld = DataLoader(
+        data_utils.TensorDataset(torch.tensor(X_val.reshape((-1, 1, 14, 14))), torch.tensor(y_val)),
+        batch_size=1,
+        num_workers=config['NUM_WORKER'])
+
     # MODEL CONFIGURATION
     model_catalog = {
-        'SE': SE(),
+        'SP': SP(classification_mode=config['CLASSIFICATION_MODE']),
+        'SE': SE(classification_mode=config['CLASSIFICATION_MODE']),
         'SK': SK(),
         'CBAM': CBAM(),
         'RB': ResNet(ResidualBlock, [2, 2, 2]),
-        'CNN': CNN()
+        'CNN': CNN(classification_mode=config['CLASSIFICATION_MODE'])
     }
 
     # OPTIMIZER CONFIGURATION
@@ -145,13 +158,19 @@ def setup(args: Namespace):
     scheduler_ = scheduler_opt[config['SCHEDULER']]
 
     # LOSS FUNCTION CONFIGURATION
-    criterion_dict = {
-        'CrossEntropyLoss': nn.CrossEntropyLoss(),
-        'MSELoss': nn.MSELoss()
-    }
-    criterion_ = criterion_dict[config['LOSS_FUNCTION']]
+    # criterion_dict = {
+    #     'CrossEntropyLoss': nn.CrossEntropyLoss(),
+    #     'MSELoss': nn.MSELoss(),
+    #     'BCELoss': nn.BCELoss(),
+    # }
+    # criterion_ = criterion_dict[config['LOSS_FUNCTION']]
 
-    return net, train_ld, optimizer_, scheduler_, criterion_, device_, SAVE_PATH_, \
+    if config['CLASSIFICATION_MODE'] == 'binary':
+        criterion_ = nn.BCELoss()
+    elif config['CLASSIFICATION_MODE'] == 'multi':
+        criterion_ = nn.CrossEntropyLoss()
+
+    return net, train_ld, val_ld, optimizer_, scheduler_, criterion_, device_, SAVE_PATH_, \
         TRAINED_MODEL_PATH_, CHECKPOINT_PATH_, epoch_, best_val_criteria_, config
 
 
@@ -161,7 +180,7 @@ if __name__ == "__main__":
                                             'checkpoint files', type=Path, required=False)
 
     # CREATE SESSION AND CONFIGURE FOR TRAINING
-    model, train_loader, optimizer, scheduler, criterion, device, SAVE_PATH, TRAINED_MODEL_PATH, \
+    model, train_loader, val_loader, optimizer, scheduler, criterion, device, SAVE_PATH, TRAINED_MODEL_PATH, \
         CHECKPOINT_PATH, pre_epoch, best_val_criteria, config = setup(args=parser.parse_args())
 
     # Set up logging and tensorboard
@@ -183,12 +202,18 @@ if __name__ == "__main__":
         train_pred_labels = []
         for step, (x_train, y_train) in enumerate(epoch_iterator_train):
             model.train()
-            x_train, y_train = x_train.to(device).float(), y_train.to(device).long()
+            x_train, y_train = x_train.to(device).float(), y_train.to(device)
 
             optimizer.zero_grad()
             pred = model(x_train)
 
-            loss = criterion(pred, torch.argmax(y_train, dim=1))
+            if config['CLASSIFICATION_MODE'] == 'multi':
+                loss = criterion(pred, torch.argmax(y_train, dim=1))
+                train_true_labels.append(np.argmax(y_train.cpu().detach().numpy(), axis=1))
+                train_pred_labels.append(np.argmax(pred.cpu().detach().numpy(), axis=1))
+            elif config['CLASSIFICATION_MODE'] == 'binary':
+                loss = criterion(pred.squeeze(), y_train.squeeze().float())
+                train_acc += (pred >= 0.5).float().eq(y_train).sum().item()
 
             if config['REGULARIZATION'] == 'L1':  # L2 regularization
                 loss += 0.01 * torch.norm(model.fc.weight, 1)  # higher multiply factor apply more regularization
@@ -203,68 +228,76 @@ if __name__ == "__main__":
                 batch_loss=(loss.item()), loss=(train_loss / (step + 1))
             )
 
-            train_true_labels.append(np.argmax(y_train.cpu().detach().numpy(), axis=1))
-            train_pred_labels.append(np.argmax(pred.cpu().detach().numpy(), axis=1))
-
         train_loss /= len(train_loader)
         train_loss_per_epoch.append(train_loss)
 
-        train_true_labels = np.concatenate(train_true_labels)
-        train_pred_labels = np.concatenate(train_pred_labels)
-        train_acc = accuracy_score(train_true_labels, train_pred_labels)
+        if config['CLASSIFICATION_MODE'] == 'multi':
+            train_true_labels = np.concatenate(train_true_labels)
+            train_pred_labels = np.concatenate(train_pred_labels)
+            train_acc = accuracy_score(train_true_labels, train_pred_labels)
+        elif config['CLASSIFICATION_MODE'] == 'binary':
+            total_samples = len(train_loader.dataset)
+            train_acc = train_acc / total_samples
 
-        # # VALIDATION THE MODEL
-        # val_loss = 0
-        # val_acc = 0
-        # val_predictions = []
-        # val_labels = []
-        # epoch_iterator_val = tqdm(val_loader)
-        # with torch.no_grad():
-        #     for step, (x_val, y_val) in enumerate(epoch_iterator_val):
-        #         model.eval()
-        #         x_val, y_val = x_val.to(device).float(), y_val.to(device).long()
-        #         y_pred = model(x_val)
-        #         loss = criterion(y_pred, y_val)
-        #         val_loss += loss.item()
-        #         epoch_iterator_val.set_postfix(
-        #             batch_loss=(loss.item()), loss=(val_loss / (step + 1))
-        #         )
-        #         val_acc += (y_pred.argmax(dim=1) == y_val).sum().item()
-        #         # val_predictions.extend(outputs.argmax(dim=1).cpu().numpy())
-        #         # val_labels.extend(labels.cpu().numpy())
-        # val_loss /= len(val_loader)
-        # val_acc /= len(val_loader)
-        # valid_balanced_acc = balanced_accuracy_score(val_labels, val_predictions)
+        # VALIDATION THE MODEL
+        val_loss = 0
+        val_acc = 0
+        val_true_labels = []
+        val_pred_labels = []
+        epoch_iterator_val = tqdm(val_loader)
+        with torch.no_grad():
+            for step, (x_val, y_val) in enumerate(epoch_iterator_val):
+                model.eval()
+                x_val, y_val = x_val.to(device).float(), y_val.to(device)
+                y_pred = model(x_val)
+
+                if config['CLASSIFICATION_MODE'] == 'multi':
+                    loss = criterion(y_pred, torch.argmax(y_val, dim=1))
+                    val_true_labels.append(np.argmax(y_val.cpu().detach().numpy(), axis=1))
+                    val_pred_labels.append(np.argmax(y_pred.cpu().detach().numpy(), axis=1))
+                elif config['CLASSIFICATION_MODE'] == 'binary':
+                    loss = criterion(y_pred.squeeze(), y_val.squeeze().float())
+                    val_acc += (y_pred >= 0.5).float().eq(y_val).sum().item()
+
+                val_loss += loss.item()
+                epoch_iterator_val.set_postfix(
+                    batch_loss=(loss.item()), loss=(val_loss / (step + 1))
+                )
+
+        val_loss /= len(val_loader)
+
+        if config['CLASSIFICATION_MODE'] == 'multi':
+            val_acc = accuracy_score(val_true_labels, val_pred_labels)
+            valid_balanced_acc = balanced_accuracy_score(val_true_labels, val_pred_labels)
+        elif config['CLASSIFICATION_MODE'] == 'binary':
+            total_samples_val = len(val_loader.dataset)
+            val_acc = val_acc / total_samples_val
 
         # Print epoch results
         log = f"Epoch {epoch + pre_epoch + 1}/{config['EPOCHS']}:\n" \
               f"LR: {scheduler.optimizer.param_groups[0]['lr']}\n" \
               f"Train Loss: {train_loss:.4f}, Train Accuracy: {train_acc:.4f}\n" \
-            # f"Valid Loss: {val_loss:.4f}, Valid Accuracy: {val_acc:.4f}, " \
-        # f"Valid Balanced Accuracy: {valid_balanced_acc:.4f}"
+              f"Valid Loss: {val_loss:.4f}, Valid Accuracy: {val_acc:.4f}, " \
+            # f"Validation Balanced Accuracy: {valid_balanced_acc:.4f}"
         print(log)
 
-        # # Save Best Trained Model
-        # if valid_balanced_acc > best_valid_acc:
-        #     best_valid_acc = valid_balanced_acc
-        #     epoch_since_improvement = 0
-        #     torch.save(model, TRAINED_MODEL_PATH.joinpath(f'VAL_BALANCED_ACC-{valid_balanced_acc:.4f}-'
-        #                                                   f'EPOCH-{epoch + pre_epoch + 1}.pth'))
-        #     print('BEST MODEL SAVED')
-        #     print(f'VALIDATION ACCURACY IMPROVED TO {valid_balanced_acc:.4f}.')
-        #
-        # else:
-        #     epoch_since_improvement += 1
-        #     # Check if we should stop training early
-        #     if epoch_since_improvement >= config['EARLY_STOP']:
-        #         early_stop = config['EARLY_STOP']
-        #         print(f'VALIDATION ACCURACY DID NOT IMPROVE FOR {early_stop} EPOCHS. TRAINING STOPPED.')
-        #         break
-        #     print(
-        #         f'VALIDATION ACCURACY DID NOT IMPROVE. EPOCHS SINCE LAST LAST IMPROVEMENT: {epoch_since_improvement}.')
+        # Save Best Trained Model
+        if val_acc > best_valid_acc:
+            best_valid_acc = val_acc
+            epoch_since_improvement = 0
+            torch.save(model, TRAINED_MODEL_PATH.joinpath(f'EPOCH-{epoch + pre_epoch + 1}-VAL-ACC-{val_acc:.4f}.pth'))
+            print('BEST MODEL SAVED')
+            print(f'VALIDATION ACCURACY IMPROVED TO {val_acc:.4f}.')
 
-        torch.save(model, TRAINED_MODEL_PATH.joinpath(f'VAL_BALANCED_ACC-'
-                                                      f'EPOCH-{epoch + pre_epoch + 1}.pth'))
+        else:
+            epoch_since_improvement += 1
+            # Check if we should stop training early
+            if epoch_since_improvement >= config['EARLY_STOP']:
+                early_stop = config['EARLY_STOP']
+                print(f'VALIDATION ACCURACY DID NOT IMPROVE FOR {early_stop} EPOCHS. TRAINING STOPPED.')
+                break
+            print(
+                f'VALIDATION ACCURACY DID NOT IMPROVE. EPOCHS SINCE LAST LAST IMPROVEMENT: {epoch_since_improvement}.')
 
         # Update Learning Rate Scheduler
         if config['SCHEDULER'] in ['ExponentialLR', 'lr_scheduler']:
@@ -276,7 +309,7 @@ if __name__ == "__main__":
         # LOGGING
         logging.info(log)
         writer.add_scalar('/Loss_train', train_loss, epoch + pre_epoch)
-        # writer.add_scalar('/Loss_validation', val_loss, epoch + pre_epoch)
+        writer.add_scalar('/Loss_validation', val_loss, epoch + pre_epoch)
 
         try:
             torch.save({
