@@ -1,38 +1,28 @@
 import pandas as pd
 import numpy as np
 
-from Cart2Pixel import Cart2Pixel
-from ConvPixel import ConvPixel
-from settings import *
-from loader import parse_data
+from Dataset2Image.Cart2Pixel import Cart2Pixel
+from Dataset2Image.ConvPixel import ConvPixel
+from utils import parse_data
+from pathlib import Path
 
 
-def main():
+def deepinsight(param, config):
+    # param = {"Max_A_Size": 14, "Max_B_Size": 14, "Dynamic_Size": False, 'Method': 'tSNE',
+    #          "seed": 1401,
+    #          "dir": '/home/faraz/PycharmProjects/IDS/Dataset2Image', "Mode": "CNN2",  # Mode : CNN_Nature, CNN2
+    #          "LoadFromPickle": False, "mutual_info": True,  # Mean or MI
+    #          "hyper_opt_evals": 50, "epoch": 2, "No_0_MI": False,  # True -> Removing 0 MI Features
+    #          "autoencoder": False, "cut": None, "enhanced_dataset": "gan"  # gan, smote, adasyn, ""None""
+    #          }
 
-    param = {"Max_A_Size": 11, "Max_B_Size": 11, "Dynamic_Size": False, 'Method': 'tSNE',
-             "seed": 1401,
-             "dir": str(BASE_DIR.joinpath('Dataset2Image')), "Mode": "CNN2",  # Mode : CNN_Nature, CNN2
-             "LoadFromPickle": False, "mutual_info": True,  # Mean or MI
-             "hyper_opt_evals": 50, "epoch": 2, "No_0_MI": False,  # True -> Removing 0 MI Features
-             "autoencoder": False, "cut": None, "enhanced_dataset": "gan"  # gan, smote, adasyn, ""None""
-             }
-
-    dataset_path = DATASET_DIR.joinpath('smote')
-    dataset_catalog = {
-        'train': dataset_path.joinpath('train'),
-        'test': dataset_path.joinpath('test')}
-
-    train_df = pd.read_csv(dataset_catalog['train'])
-    x_train, y_train = parse_data(train_df, mode='df')
-    #x_train = x_train.iloc[:200, :]
-    #y_train = y_train.iloc[:200, :]
+    train_df = pd.read_csv(Path(config['DATASET_PATH']).joinpath('train_' + config['CLASSIFICATION_MODE'] + '.csv'))
+    x_train, y_train = parse_data(train_df, dataset_name='UNSW_NB15', mode='df', classification_mode='binary')
     print(f'train shape: x=>{x_train.shape}, y=>{y_train.shape}')
     y_train = y_train.to_numpy()
 
-    test_df = pd.read_csv(dataset_catalog['test'])
-    x_test, y_test = parse_data(test_df, mode='df')
-    #x_test = x_test.iloc[:200, :]
-    #y_test = y_test.iloc[:200, :]
+    test_df = pd.read_csv(Path(config['DATASET_PATH']).joinpath('test_' + config['CLASSIFICATION_MODE'] + '.csv'))
+    x_test, y_test = parse_data(test_df, dataset_name='UNSW_NB15', mode='df', classification_mode='binary')
     print(f'test shape: x=>{x_test.shape}, y=>{y_test.shape}')
 
     np.random.seed(param["seed"])
@@ -75,18 +65,17 @@ def main():
 
     if image_model["custom_cut"] is not None:
         XTestGlobal = [ConvPixel(x_test[:, i], np.array(image_model["xp"]), np.array(image_model["yp"]),
-                       image_model["A"], image_model["B"], custom_cut=range(0, image_model["custom_cut"]))
+                                 image_model["A"], image_model["B"], custom_cut=range(0, image_model["custom_cut"]))
                        for i in range(0, x_test.shape[1])]
     else:
         XTestGlobal = [ConvPixel(x_test[:, i], np.array(image_model["xp"]), np.array(image_model["yp"]),
-                       image_model["A"], image_model["B"])
+                                 image_model["A"], image_model["B"])
                        for i in range(0, x_test.shape[1])]
 
-    np.save(filename_test, XTestGlobal)
+    # np.save(filename_test, XTestGlobal)
     print("Test Images generated and test images with labels are saved with the size of:", np.shape(XTestGlobal))
 
-    return 1
+    return np.array(XGlobal), np.array(XTestGlobal)
 
-
-if __name__ == '__main__':
-    main()
+# if __name__ == '__main__':
+#     deepinsight()

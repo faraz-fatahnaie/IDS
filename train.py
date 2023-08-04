@@ -79,7 +79,7 @@ def setup(args: Namespace):
     test_df = pd.read_csv(Path(config['DATASET_PATH']).joinpath('test_' + config['CLASSIFICATION_MODE'] + '.csv'))
 
     if config['DEEPINSIGHT']['deepinsight']:
-        X_train, X_val = deepinsight(config['DEEPINSIGHT'])
+        X_train, X_val = deepinsight(config['DEEPINSIGHT'], config)
         _, y_train = parse_data(train_df, dataset_name=config['DATASET_NAME'], mode=config['DATASET_TYPE'],
                                 classification_mode=config['CLASSIFICATION_MODE'])
         _, y_val = parse_data(test_df, dataset_name=config['DATASET_NAME'], mode=config['DATASET_TYPE'],
