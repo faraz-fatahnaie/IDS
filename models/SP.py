@@ -153,19 +153,24 @@ class SP(nn.Module):
                 nn.Flatten(),
                 nn.Dropout(0.5)
             )
-            self.fc = nn.Linear(in_features=1600, out_features=self.n_classes)
+            # self.fc = nn.Linear(in_features=1600, out_features=self.n_classes)
 
     def forward(self, x):
         x = self._model(x)
-        x = self.fc(x)
+        x = nn.Linear(in_features=x.size(1), out_features=self.n_classes)(x)
+        # self.fc.in_features = x.size(1)
+        # x = self.fc(x)
         return self.activation(x)
 
 
-# if __name__ == '__main__':
-#     from torchsummary import summary
-#
-#     model = SPConv2D(in_channels=248, out_channels=512, alpha=0.6)
-#     summary(model.cuda(), (248, 100, 100))
+if __name__ == '__main__':
+    # from torchsummary import summary
 
+    # model = SPConv2D(in_channels=248, out_channels=512, alpha=0.6)
+    # summary(model.cuda(), (248, 100, 100))
+    #
     # model2 = SPConv1D(in_channels=248, out_channels=512, alpha=0.6)
     # summary(model2, [248, 1000])
+
+    model = SP(classification_mode='binary')
+    model(torch.randn((1, 1, 14, 14)))
