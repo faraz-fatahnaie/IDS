@@ -7,8 +7,8 @@ import json as json
 from sklearn.decomposition import PCA, KernelPCA
 from sklearn.feature_selection import mutual_info_classif
 from sklearn.manifold import TSNE
-from MinRect import minimum_bounding_rectangle
-from ConvPixel import ConvPixel
+from Dataset2Image.MinRect import minimum_bounding_rectangle
+from Dataset2Image.ConvPixel import ConvPixel
 import matplotlib.pyplot as plt
 import imageio
 
