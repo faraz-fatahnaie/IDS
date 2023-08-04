@@ -4,11 +4,18 @@
     "name": "UNSW_NB15",
     "classification_mode": "binary",
     "type": "np",
+    "deepinsight": {"deepinsight": true, "Max_A_Size": 14, "Max_B_Size": 14, "Dynamic_Size": false, "Method": "tSNE",
+             "seed": 1401,
+             "dir": "/home/faraz/PycharmProjects/IDS/Dataset2Image", "Mode": "CNN2",
+             "LoadFromPickle": false, "mutual_info": true,
+             "hyper_opt_evals": 50, "epoch": 2, "No_0_MI": false,
+             "autoencoder": false, "cut": null, "enhanced_dataset": "gan"
+             },
     "n_worker": 4
   },
   "model": {
-    "name": "SE",
-    "trainable": 1,
+    "name": "SP",
+    "trainable": true,
     "epoch": 10,
     "batch_size": 16,
     "optim": "Adam",
@@ -20,7 +27,7 @@
     "loss": "CrossEntropyLoss",
     "weight_decay": 0.0001,
     "early_stop": 5,
-    "gamma": 0.5,
+    "gamma": 0.75,
     "regularization": ""
   }
 }
