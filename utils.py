@@ -33,7 +33,7 @@ def parse_data(df, dataset_name: str, mode: str = 'np', classification_mode: str
         return dt, lb
 
 
-def deepinsight(x: ndarray, y: ndarray, pixel_size: tuple = (11, 11)):
+def deepinsight_original(x: ndarray, y: ndarray, pixel_size: tuple = (11, 11)):
     distance_metric = 'cosine'
     pixel_size = pixel_size
 
