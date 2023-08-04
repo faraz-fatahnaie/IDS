@@ -15,7 +15,8 @@ from torch.utils.tensorboard import SummaryWriter
 import torchvision.transforms as transforms
 from tqdm import tqdm
 
-from utils import parse_data, deepinsight
+from utils import parse_data
+from Dataset2Image.main import deepinsight
 
 from configs.setting import setting
 import pandas as pd
@@ -77,13 +78,23 @@ def setup(args: Namespace):
     train_df = pd.read_csv(Path(config['DATASET_PATH']).joinpath('train_' + config['CLASSIFICATION_MODE'] + '.csv'))
     test_df = pd.read_csv(Path(config['DATASET_PATH']).joinpath('test_' + config['CLASSIFICATION_MODE'] + '.csv'))
 
-    X_train, y_train = parse_data(train_df, dataset_name=config['DATASET_NAME'], mode=config['DATASET_TYPE'],
-                                  classification_mode=config['CLASSIFICATION_MODE'])
-    X_val, y_val = parse_data(test_df, dataset_name=config['DATASET_NAME'], mode=config['DATASET_TYPE'],
+    if config['DEEPINSIGHT']['deepinsight']:
+        X_train, X_val = deepinsight(config['DEEPINSIGHT'])
+        _, y_train = parse_data(train_df, dataset_name=config['DATASET_NAME'], mode=config['DATASET_TYPE'],
+                                classification_mode=config['CLASSIFICATION_MODE'])
+        _, y_val = parse_data(test_df, dataset_name=config['DATASET_NAME'], mode=config['DATASET_TYPE'],
                               classification_mode=config['CLASSIFICATION_MODE'])
+    else:
+        X_train, y_train = parse_data(train_df, dataset_name=config['DATASET_NAME'], mode=config['DATASET_TYPE'],
+                                      classification_mode=config['CLASSIFICATION_MODE'])
+        X_val, y_val = parse_data(test_df, dataset_name=config['DATASET_NAME'], mode=config['DATASET_TYPE'],
+                                  classification_mode=config['CLASSIFICATION_MODE'])
 
     # X_train, image_transformer, norm_scaler = deepinsight(X_train, y_train)
     # X_val = image_transformer.transform(norm_scaler.transform(X_val))[:, :, :, 0]
+
+    # X_train = np.load('/home/faraz/PycharmProjects/IDS/Dataset2Image/train_14x14_MI.npy')
+    # X_val = np.load('/home/faraz/PycharmProjects/IDS/Dataset2Image/test_14x14_MI.npy')
 
     print(f'train shape: x=>{X_train.shape}, y=>{y_train.shape}')
     print(f'train shape: x=>{X_val.shape}, y=>{y_val.shape}')
