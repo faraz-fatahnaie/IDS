@@ -28,7 +28,7 @@ from models.SP import SP
 from models.SK import SK
 from models.CBAM import CBAM
 from models.Residual import RB, ResNet, ResidualBlock
-from models.CNN import CNN
+from models.CNN import CNN, CNN_MAGNETO
 
 
 def setup(args: Namespace):
@@ -117,7 +117,8 @@ def setup(args: Namespace):
         'SK': SK(),
         'CBAM': CBAM(),
         'RB': ResNet(ResidualBlock, [2, 2, 2]),
-        'CNN': CNN(classification_mode=config['CLASSIFICATION_MODE'])
+        'CNN': CNN(classification_mode=config['CLASSIFICATION_MODE']),
+        'CNN_MAGNETO': CNN_MAGNETO(classification_mode=config['CLASSIFICATION_MODE'])
     }
 
     # OPTIMIZER CONFIGURATION
@@ -167,14 +168,6 @@ def setup(args: Namespace):
                                                  verbose=True)
     }
     scheduler_ = scheduler_opt[config['SCHEDULER']]
-
-    # LOSS FUNCTION CONFIGURATION
-    # criterion_dict = {
-    #     'CrossEntropyLoss': nn.CrossEntropyLoss(),
-    #     'MSELoss': nn.MSELoss(),
-    #     'BCELoss': nn.BCELoss(),
-    # }
-    # criterion_ = criterion_dict[config['LOSS_FUNCTION']]
 
     if config['CLASSIFICATION_MODE'] == 'binary':
         criterion_ = nn.BCELoss()
