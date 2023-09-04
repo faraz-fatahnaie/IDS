@@ -157,7 +157,7 @@ class SP(nn.Module):
 
     def forward(self, x):
         x = self._model(x)
-        x = nn.Linear(in_features=x.size(1), out_features=self.n_classes)(x)
+        x = nn.Linear(in_features=x.size(1), out_features=self.n_classes).to('cuda:0')(x)
         # self.fc.in_features = x.size(1)
         # x = self.fc(x)
         return self.activation(x)
