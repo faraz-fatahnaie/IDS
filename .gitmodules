@@ -1,6 +1,3 @@
 [submodule "pyDeepInsight"]
 	path = pyDeepInsight
 	url = https://github.com/alok-ai-lab/pyDeepInsight.git
-[submodule "MAGNETO"]
-	path = MAGNETO
-	url = https://github.com/faraz-fatahnaie/MAGNETO
