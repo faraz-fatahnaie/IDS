@@ -27,7 +27,6 @@ def setting(config_file=None):
     config['NUM_WORKER'] = config_file['dataset']['n_worker']
     config['MODEL_NAME'] = config_file['model']['name']
 
-    config['LOSS_FUNCTION'] = config_file['model']['loss']
     config['EPOCHS'] = config_file['model']['epoch']
     config['BATCH_SIZE'] = config_file['model']['batch_size']
     config['OPTIMIZER'] = config_file['model']['optim']
