@@ -5,6 +5,7 @@ import json
 def setting(config_file=None):
     config = dict()
     BASE_DIR = Path(__file__).resolve().parent.parent
+    BASE_DIR.joinpath('session').mkdir(exist_ok=True)
 
     if config_file is None:
         config_name = 'CONFIG'  # config file name in config dir
