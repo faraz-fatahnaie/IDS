@@ -42,14 +42,56 @@ class CNN(nn.Module):
         y = self.gap(y)
         y = nn.Flatten()(y)
         y = self.linear(y)
+        # y = nn.Linear(in_features=y.size(1), out_features=self.n_classes).to('cuda:0')(y)
         y = self.activation(y)
 
         return y
 
 
-if __name__ == '__main__':
-    # summary(model=SEForward(), input_size=(1, 11, 11))
-    input = torch.randn(1, 1, 11, 11)
-    se = CNN()
-    output = se(input)
-    print(output.shape)
+class CNN_MAGNETO(nn.Module):
+    def __init__(self, classification_mode: str = 'multi'):
+        super(CNN_MAGNETO, self).__init__()
+        if classification_mode == 'multi':
+            self.n_classes = 5
+            self.activation = nn.Softmax(dim=1)
+        elif classification_mode == 'binary':
+            self.n_classes = 1
+            self.activation = nn.Sigmoid()
+
+        self.conv0 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=2, stride=1)
+        self.conv1 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=2, stride=1)
+        self.conv2 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=2, stride=1)
+
+        self.linear0 = nn.Linear(in_features=15488, out_features=256)
+        self.linear1 = nn.Linear(in_features=256, out_features=1024)
+        self.linear2 = nn.Linear(in_features=1024, out_features=self.n_classes)
+
+    def forward(self, x):
+        y = self.conv0(x)
+        y = F.relu(y)
+        y = nn.Dropout()(y)
+
+        y = self.conv1(y)
+        y = F.relu(y)
+        y = nn.Dropout()(y)
+
+        y = self.conv2(y)
+        y = F.relu(y)
+
+        y = nn.Flatten()(y)
+        y = self.linear0(y)
+        y = F.relu(y)
+        y = self.linear1(y)
+        y = F.relu(y)
+        y = self.linear2(y)
+        y = self.activation(y)
+
+        return y
+
+
+# if __name__ == '__main__':
+#     # summary(model=SEForward(), input_size=(1, 11, 11))
+#     input = torch.randn(1, 1, 11, 11)
+#     se = CNN()
+#     output = se(input)
+#     print(output.shape)
