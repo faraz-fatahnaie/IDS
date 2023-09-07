@@ -6,6 +6,7 @@ from imblearn.combine import SMOTEENN
 from imblearn.under_sampling import EditedNearestNeighbours
 
 from sklearn.preprocessing import StandardScaler, LabelBinarizer, MinMaxScaler
+from utils import parse_data
 
 np.random.seed(0)
 
@@ -57,7 +58,7 @@ class BuildDataFrames:
 
     def label_mapping(self):
         """
-        this function specificly is used for original dataset
+        this function specifically is used for original dataset
         """
         if self.classification_mode == 'multi':
             self.train.label.replace(
@@ -265,8 +266,6 @@ if __name__ == "__main__":
     label_binarized_train, label_binarized_test = preprocess.label_binarize()
     preprocess.save_data_frames(save_path)
     # print(label_binarized_train)
-    #
-    from utils import parse_data
 
     a, b = parse_data(label_binarized_train, dataset_name='NSL_KDD', classification_mode=classification_mode)
     print(a.shape, b.shape)
