@@ -1,17 +1,16 @@
 {
   "cuda": true,
   "dataset": {
-    "name": "UNSW_NB15",
+    "name": "NSL_KDD",
     "classification_mode": "binary",
     "type": "np",
+    "n_worker": 4,
     "deepinsight": {"deepinsight": true, "Max_A_Size": 14, "Max_B_Size": 14, "Dynamic_Size": false, "Method": "tSNE",
-             "seed": 1401,
-             "Mode": "CNN2",
-             "LoadFromPickle": false, "mutual_info": true,
-             "hyper_opt_evals": 50, "epoch": 2, "No_0_MI": false,
-             "autoencoder": false, "cut": null, "enhanced_dataset": "None"
-             },
-    "n_worker": 4
+                   "LoadFromPickle": false, "mutual_info": true,
+                   "hyper_opt_evals": 50, "epoch": 2, "No_0_MI": false,
+                   "autoencoder": false, "cut": null, "enhanced_dataset": "None",
+                   "seed": 1401
+    }
   },
   "model": {
     "name": "SP",
@@ -19,7 +18,7 @@
     "epoch": 10,
     "batch_size": 16,
     "optim": "Adam",
-    "lr": 0.001,
+    "lr": 0.0001,
     "min_lr": 0.00001,
     "patience": 5,
     "factor": 0.1,
