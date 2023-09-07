@@ -6,6 +6,7 @@ from imblearn.combine import SMOTEENN
 from imblearn.under_sampling import EditedNearestNeighbours
 
 from sklearn.preprocessing import StandardScaler, LabelBinarizer, MinMaxScaler
+from utils import parse_data
 
 np.random.seed(0)
 
@@ -49,39 +50,42 @@ class BuildDataFrames:
         self.train = pd.read_csv(self.train_path, names=feature)
         self.test = pd.read_csv(self.test_path, names=feature)
 
-        # self.train.drop(['is_host_login', 'num_outbound_cmds'], axis=1, inplace=True)
-        # self.test.drop(['is_host_login', 'num_outbound_cmds'], axis=1, inplace=True)
+        self.train.drop(['num_outbound_cmds'], axis=1, inplace=True)
+        self.test.drop(['num_outbound_cmds'], axis=1, inplace=True)
         return self.train, self.test
 
     def label_mapping(self):
         """
-        this function specificly is used for original dataset
+        this function specifically is used for original dataset
         """
         if self.classification_mode == 'multi':
+            self.train.label.replace(['normal.'], 'normal', inplace=True)
             self.train.label.replace(
-                ['back', 'land', 'neptune', 'pod', 'smurf', 'teardrop'],
+                ['back.', 'land.', 'neptune.', 'pod.', 'smurf.', 'teardrop.'],
                 'Dos', inplace=True)
             self.train.label.replace(
-                ['ftp_write', 'guess_passwd', 'imap', 'multihop', 'phf', 'spy', 'warezclient', 'warezmaster'],
+                ['ftp_write.', 'guess_passwd.', 'imap.', 'multihop.', 'phf.', 'spy.', 'warezclient.', 'warezmaster.'],
                 'R2L', inplace=True)
             self.train.label.replace(
-                ['ipsweep', 'nmap', 'portsweep', 'satan'],
+                ['ipsweep.', 'nmap.', 'portsweep.', 'satan.'],
                 'Probe', inplace=True)
             self.train.label.replace(
-                ['buffer_overflow', 'loadmodule', 'perl', 'rootkit'],
+                ['buffer_overflow.', 'loadmodule.', 'perl.', 'rootkit.'],
                 'U2R', inplace=True)
 
+            self.test.label.replace(['normal.'], 'normal', inplace=True)
             self.test.label.replace(
-                ['back', 'land', 'neptune', 'pod', 'smurf', 'teardrop', 'mailbomb', 'apache2', 'processtable',
-                 'udpstorm'],
+                ['back.', 'land.', 'neptune.', 'pod.', 'smurf.', 'teardrop.'],
                 'Dos', inplace=True)
             self.test.label.replace(
-                ['ftp_write', 'guess_passwd', 'imap', 'multihop', 'phf', 'spy', 'warezclient', 'warezmaster',
-                 'sendmail',
-                 'named', 'snmpgetattack', 'snmpguess', 'xlock', 'xsnoop', 'worm'], 'R2L', inplace=True)
-            self.test.label.replace(['ipsweep', 'mscan', 'nmap', 'portsweep', 'saint', 'satan'], 'Probe', inplace=True)
+                ['ftp_write.', 'guess_passwd.', 'imap.', 'multihop.', 'phf.', 'spy.', 'warezclient.', 'warezmaster.'],
+                'R2L', inplace=True)
             self.test.label.replace(
-                ['buffer_overflow', 'loadmodule', 'perl', 'ps', 'rootkit', 'sqlattack', 'xterm', 'httptunnel'], 'U2R',
+                ['ipsweep.', 'nmap.', 'portsweep.', 'satan.'],
+                'Probe', inplace=True)
+            self.test.label.replace(
+                ['buffer_overflow.', 'loadmodule.', 'perl.', 'rootkit.'],
+                'U2R',
                 inplace=True)
         elif self.classification_mode == 'binary':
             self.train['label'] = self.train['label'].apply(lambda x: 'attack.' if x != 'normal.' else x)
@@ -263,8 +267,6 @@ if __name__ == "__main__":
     label_binarized_train, label_binarized_test = preprocess.label_binarize()
     preprocess.save_data_frames(save_path)
     # print(label_binarized_train)
-    #
-    from utils import parse_data
 
-    a, b = parse_data(label_binarized_train, dataset_name='NSL_KDD', classification_mode=classification_mode)
+    a, b = parse_data(label_binarized_train, dataset_name='KDD_CUP99', classification_mode=classification_mode)
     print(a.shape, b.shape)
