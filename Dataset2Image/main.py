@@ -39,13 +39,13 @@ def deepinsight(param, config):
     except:
         train_df = pd.read_csv(Path(config['DATASET_PATH']).joinpath('train_' + config['CLASSIFICATION_MODE'] + '.csv'))
         x_train, y_train = parse_data(train_df, dataset_name=config['DATASET_NAME'], mode='df',
-                                      classification_mode='binary')
+                                      classification_mode=config['CLASSIFICATION_MODE'])
         print(f'train shape: x=>{x_train.shape}, y=>{y_train.shape}')
         y_train = y_train.to_numpy()
 
         test_df = pd.read_csv(Path(config['DATASET_PATH']).joinpath('test_' + config['CLASSIFICATION_MODE'] + '.csv'))
         x_test, y_test = parse_data(test_df, dataset_name=config['DATASET_NAME'], mode='df',
-                                    classification_mode='binary')
+                                    classification_mode=config['CLASSIFICATION_MODE'])
         print(f'test shape: x=>{x_test.shape}, y=>{y_test.shape}')
 
         np.random.seed(param["seed"])
