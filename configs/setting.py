@@ -23,6 +23,8 @@ def setting(config_file=None):
         config['DATASET_PATH'] = '/home/faraz/PycharmProjects/IDS/dataset/NSL_KDD/file/preprocessed'
     elif config['DATASET_NAME'] == 'UNSW_NB15':
         config['DATASET_PATH'] = '/home/faraz/PycharmProjects/IDS/dataset/UNSW_NB15/file/preprocessed'
+    elif config['DATASET_NAME'] == 'KDD_CUP99':
+        config['DATASET_PATH'] = '/home/faraz/PycharmProjects/IDS/dataset/KDD_CUP99/file/preprocessed'
 
     config['NUM_WORKER'] = config_file['dataset']['n_worker']
     config['MODEL_NAME'] = config_file['model']['name']
