@@ -9,12 +9,12 @@ from pyDeepInsight.pyDeepInsight.utils import Norm2Scaler
 from sklearn.manifold import TSNE
 
 
-def parse_data(df, dataset_name: str, mode: str = 'np', classification_mode: str = 'binary'):
+def parse_data(df, dataset_name: str, classification_mode: str, mode: str = 'np'):
     classes = []
     if classification_mode == 'binary':
         classes = df.columns[-1:]
     elif classification_mode == 'multi':
-        if dataset_name == 'NSL_KDD':
+        if dataset_name in ['NSL_KDD', 'KDD_CUP99']:
             classes = df.columns[-5:]
         elif dataset_name == 'UNSW_NB15':
             classes = df.columns[-10:]
