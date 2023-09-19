@@ -22,6 +22,7 @@ from configs.setting import setting
 import pandas as pd
 import numpy as np
 from sklearn.metrics import accuracy_score, confusion_matrix, cohen_kappa_score
+from utils import metrics_evaluate
 
 from models.SE import SE
 from models.SP import SP
@@ -29,6 +30,7 @@ from models.SK import SK
 from models.CBAM import CBAM
 from models.Residual import RB, ResNet, ResidualBlock
 from models.CNN import CNN, CNN_MAGNETO
+from models.spse import SPSE
 
 
 def setup(args: Namespace):
@@ -114,6 +116,7 @@ def setup(args: Namespace):
     model_catalog = {
         'SP': SP(classification_mode=config['CLASSIFICATION_MODE']),
         'SE': SE(classification_mode=config['CLASSIFICATION_MODE']),
+        'SPSE': SPSE(),
         'SK': SK(),
         'CBAM': CBAM(),
         'RB': ResNet(ResidualBlock, [2, 2, 2]),
