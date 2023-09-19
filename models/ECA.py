@@ -39,31 +39,31 @@ class ECAAttention(nn.Module):
 class ECA(nn.Module):
     def __init__(self):
         super(ECA, self).__init__()
-        self.n_classes = 5
+        self.n_classes = 1
         self.eca = nn.Sequential(
 
             nn.Conv2d(in_channels=1, out_channels=8, kernel_size=2, stride=1),
-            #nn.ReLU(True),
+            # nn.ReLU(True),
             nn.Sigmoid(),
-            #ECAAttention(kernel_size=3),
+            # ECAAttention(kernel_size=3),
             nn.Conv2d(in_channels=8, out_channels=16, kernel_size=3, stride=1),
             ECAAttention(kernel_size=3),
             nn.BatchNorm2d(16),
             nn.Sigmoid(),
-            #nn.ReLU(True),
+            # nn.ReLU(True),
             nn.Flatten(),
             nn.Dropout(0.1),
             nn.Linear(in_features=1024, out_features=self.n_classes),
-            nn.Softmax(dim=1)
+            # nn.Softmax(dim=1)
+            nn.Sigmoid()
         )
 
     def forward(self, x):
         return self.eca(x)
 
 
-#if __name__ == '__main__':
-#    input = torch.randn(50, 512, 7, 7)
-#    eca = ECAAttention(kernel_size=3)
-#    output = eca(input)
-#    print(output.shape)
-
+if __name__ == '__main__':
+    input = torch.randn(1, 1, 14, 14)
+    eca = ECAAttention(kernel_size=3)
+    output = eca(input)
+    print(output.shape)

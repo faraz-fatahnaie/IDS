@@ -56,7 +56,7 @@ class SKAttention(nn.Module):
 class SK(nn.Module):
     def __init__(self):
         super(SK, self).__init__()
-        self.n_classes = 5
+        self.n_classes = 1
         self.SK = nn.Sequential(
 
             nn.Conv2d(in_channels=1, out_channels=16, kernel_size=2, stride=1),
@@ -68,7 +68,8 @@ class SK(nn.Module):
             nn.Flatten(),
             nn.Dropout(0.1),
             nn.Linear(in_features=2048, out_features=self.n_classes),
-            nn.Softmax(dim=1)
+            # nn.Softmax(dim=1)
+            nn.Sigmoid()
         )
 
     def forward(self, x):

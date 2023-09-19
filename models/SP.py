@@ -146,20 +146,32 @@ class SP(nn.Module):
             elif classification_mode == 'binary':
                 self.n_classes = 1
                 self.activation = nn.Sigmoid()
+            # self._model = nn.Sequential(
+            #     nn.Conv2d(in_channels=1, out_channels=8, kernel_size=2, stride=1),
+            #     # nn.ReLU(True),
+            #     nn.Dropout(),
+            #     SPConv2D(in_channels=8, out_channels=16, stride=1, alpha=0.8),
+            #     nn.ReLU(True),
+            #     nn.Flatten(),
+            #     nn.Dropout()
+            # )
             self._model = nn.Sequential(
                 nn.Conv2d(in_channels=1, out_channels=8, kernel_size=2, stride=1),
+                nn.ReLU(True),
+                # nn.Dropout(),
                 SPConv2D(in_channels=8, out_channels=16, stride=1, alpha=0.8),
                 nn.ReLU(True),
+                # SPConv2D(in_channels=16, out_channels=32, stride=1, alpha=0.8),
+                # nn.ReLU(True),
                 nn.Flatten(),
-                nn.Dropout(0.5)
+                # nn.Dropout()
             )
-            # self.fc = nn.Linear(in_features=1600, out_features=self.n_classes)
+            self.fc = nn.Linear(in_features=1600, out_features=self.n_classes)
 
     def forward(self, x):
         x = self._model(x)
-        x = nn.Linear(in_features=x.size(1), out_features=self.n_classes).to('cuda:0')(x)
-        # self.fc.in_features = x.size(1)
-        # x = self.fc(x)
+        x = self.fc(x)
+
         return self.activation(x)
 
 
@@ -173,4 +185,4 @@ if __name__ == '__main__':
     # summary(model2, [248, 1000])
 
     model = SP(classification_mode='binary')
-    model(torch.randn((1, 1, 14, 14)))
+    model(torch.randn((1, 1, 10, 10)))
