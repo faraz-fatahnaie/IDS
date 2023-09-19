@@ -13,6 +13,7 @@ from argparse import Namespace, ArgumentParser
 from pathlib import Path
 from configs.setting import setting
 from utils import parse_data, metrics_evaluate
+from Dataset2Image.main import deepinsight
 
 
 def evaluate(args: Namespace):
@@ -32,8 +33,13 @@ def evaluate(args: Namespace):
     model.to(device)
 
     test_df = pd.read_csv(Path(config['DATASET_PATH']).joinpath('test_' + config['CLASSIFICATION_MODE'] + '.csv'))
-    X_test, y_test = parse_data(test_df, dataset_name=config['DATASET_NAME'], mode=config['DATASET_TYPE'],
-                                classification_mode=config['CLASSIFICATION_MODE'])
+    if config['DEEPINSIGHT']['deepinsight']:
+        _, X_test = deepinsight(config['DEEPINSIGHT'], config)
+        _, y_test = parse_data(test_df, dataset_name=config['DATASET_NAME'], mode=config['DATASET_TYPE'],
+                               classification_mode=config['CLASSIFICATION_MODE'])
+    else:
+        X_test, y_test = parse_data(test_df, dataset_name=config['DATASET_NAME'], mode=config['DATASET_TYPE'],
+                                    classification_mode=config['CLASSIFICATION_MODE'])
 
     test_ld = DataLoader(
         data_utils.TensorDataset(torch.tensor(X_test.reshape((-1, 1, 14, 14))), torch.tensor(y_test)),
@@ -67,11 +73,11 @@ def evaluate(args: Namespace):
         accuracy = accuracy_score(labels, preds)
         balanced_acc = balanced_accuracy_score(labels, preds)
         print('BALANCE ACCURACY: ', round(balanced_acc, 4))
-        print(metrics_evaluate(labels, preds))
     elif config['CLASSIFICATION_MODE'] == 'binary':
         total_samples = len(test_ld.dataset)
         accuracy = accuracy / total_samples
 
+    print(metrics_evaluate(labels, preds))
     print('ACCURACY: ', round(accuracy, 4))
     submission = pd.DataFrame({'prediction': preds, 'label': labels, 'probability': probs})
     if not os.path.exists(root_path.joinpath('submission')):
