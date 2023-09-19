@@ -1,3 +1,4 @@
+import sklearn.metrics
 import torch
 
 from sklearn import metrics
@@ -18,6 +19,8 @@ def parse_data(df, dataset_name: str, classification_mode: str, mode: str = 'np'
             classes = df.columns[-5:]
         elif dataset_name == 'UNSW_NB15':
             classes = df.columns[-10:]
+        elif dataset_name == 'CICIDS':
+            classes = df.columns[-15:]
 
     assert classes is not None, 'Something Wrong!!\nno class columns could be extracted from dataframe'
     glob_cl = set(range(len(df.columns)))
@@ -58,19 +61,17 @@ def deepinsight_original(x: ndarray, y: ndarray, pixel_size: tuple = (11, 11)):
 
 
 def metrics_evaluate(true_label: ndarray, pred_label: ndarray) -> dict:
-    metric_param = {
-        'accuracy': metrics.accuracy_score(true_label, pred_label),
-        'recall': metrics.recall_score(true_label, pred_label, average=None),
-        # 'precision': metrics.precision_score(true_label, pred_label, average=None),
-    }
-    conf_mat = metrics.confusion_matrix(true_label, pred_label)
-    false_positive = conf_mat.sum(axis=0) - np.diag(conf_mat)
-    false_negative = conf_mat.sum(axis=1) - np.diag(conf_mat)
-    true_positive = np.diag(conf_mat)
-    true_negative = conf_mat.sum() - (false_positive + false_negative + true_positive)
+    metric_param = {'accuracy': metrics.accuracy_score(true_label, pred_label),
+                    'recall': metrics.recall_score(true_label, pred_label, average=None),
+                    'confusion_matrix': metrics.confusion_matrix(true_label, pred_label)}
+    false_positive = metric_param['confusion_matrix'].sum(axis=0) - np.diag(metric_param['confusion_matrix'])
+    false_negative = metric_param['confusion_matrix'].sum(axis=1) - np.diag(metric_param['confusion_matrix'])
+    true_positive = np.diag(metric_param['confusion_matrix'])
+    true_negative = metric_param['confusion_matrix'].sum() - (false_positive + false_negative + true_positive)
 
     metric_param['false_alarm_rate'] = false_positive / (false_positive + true_negative)
     metric_param['detection_rate'] = true_positive / (true_positive + false_negative)
+    metric_param['f1_score'] = sklearn.metrics.f1_score(true_label, pred_label)
 
     return metric_param
 
