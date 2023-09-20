@@ -101,14 +101,17 @@ def setup(args: Namespace):
     print(f'train shape: x=>{X_train.shape}, y=>{y_train.shape}')
     print(f'train shape: x=>{X_val.shape}, y=>{y_val.shape}')
 
+    image_A_size = config['DEEPINSIGHT']['Max_A_Size']
+    image_B_size = config['DEEPINSIGHT']['Max_B_Size']
+
     train_ld = DataLoader(
-        data_utils.TensorDataset(torch.tensor(X_train.reshape((-1, 1, 14, 14))), torch.tensor(y_train)),
+        data_utils.TensorDataset(torch.tensor(X_train.reshape((-1, 1, image_A_size, image_B_size))), torch.tensor(y_train)),
         batch_size=config['BATCH_SIZE'],
         num_workers=config['NUM_WORKER'],
         shuffle=True)
 
     val_ld = DataLoader(
-        data_utils.TensorDataset(torch.tensor(X_val.reshape((-1, 1, 14, 14))), torch.tensor(y_val)),
+        data_utils.TensorDataset(torch.tensor(X_val.reshape((-1, 1, image_A_size, image_B_size))), torch.tensor(y_val)),
         batch_size=1,
         num_workers=config['NUM_WORKER'])
 
