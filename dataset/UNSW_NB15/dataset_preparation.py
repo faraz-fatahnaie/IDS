@@ -139,14 +139,14 @@ if __name__ == "__main__":
     preprocess_train = BuildDataFrames(df_path=str(train_path), df_type='train',
                                        classification_mode=classification_m)
     train = preprocess_train.read_dataframe()
-    # train_normalized, min_max_scaler_obj = preprocess_train.normalization()
+    train_normalized, min_max_scaler_obj = preprocess_train.normalization()
     train_one_hot, train_one_hot_cols = preprocess_train.onehot_encoding()
 
     # =========== TEST DATAFRAME PREPROCESSING ===========
     preprocess_test = BuildDataFrames(df_path=str(test_path), df_type='test',
                                       classification_mode=classification_m)
     test = preprocess_test.read_dataframe()
-    # test_normalized = preprocess_test.normalization(min_max_scaler_object=min_max_scaler_obj)
+    test_normalized = preprocess_test.normalization(min_max_scaler_object=min_max_scaler_obj)
     test_one_hot, test_one_hot_cols = preprocess_test.onehot_encoding()
 
     # =========== FEATURE (COLUMN) EQUALIZATION BETWEEN TRAIN AND TEST DATAFRAMES  ===========
