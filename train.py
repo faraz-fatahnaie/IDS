@@ -22,7 +22,7 @@ from configs.setting import setting
 import pandas as pd
 import numpy as np
 from sklearn.metrics import accuracy_score, confusion_matrix, cohen_kappa_score
-from utils import metrics_evaluate
+from utils import EQLv2Loss
 
 from models.SE import SE
 from models.SP import SP
@@ -31,6 +31,7 @@ from models.CBAM import CBAM
 from models.Residual import RB, ResNet, ResidualBlock
 from models.CNN import CNN, CNN_MAGNETO
 from models.spse import SPSE
+from models.CA import CA
 
 
 def setup(args: Namespace):
@@ -106,12 +107,15 @@ def setup(args: Namespace):
 
     train_ld = DataLoader(
         data_utils.TensorDataset(torch.tensor(X_train.reshape((-1, 1, image_A_size, image_B_size))), torch.tensor(y_train)),
+        # data_utils.TensorDataset(torch.tensor(X_train).reshape((-1, 1, 121)), torch.tensor(y_train)),
+
         batch_size=config['BATCH_SIZE'],
         num_workers=config['NUM_WORKER'],
         shuffle=True)
 
     val_ld = DataLoader(
         data_utils.TensorDataset(torch.tensor(X_val.reshape((-1, 1, image_A_size, image_B_size))), torch.tensor(y_val)),
+        # data_utils.TensorDataset(torch.tensor(X_val.reshape((-1, 1, 121))), torch.tensor(y_val)),
         batch_size=1,
         num_workers=config['NUM_WORKER'])
 
@@ -124,7 +128,8 @@ def setup(args: Namespace):
         'CBAM': CBAM(),
         'RB': ResNet(ResidualBlock, [2, 2, 2]),
         'CNN': CNN(classification_mode=config['CLASSIFICATION_MODE']),
-        'CNN_MAGNETO': CNN_MAGNETO(classification_mode=config['CLASSIFICATION_MODE'])
+        'CNN_MAGNETO': CNN_MAGNETO(classification_mode=config['CLASSIFICATION_MODE']),
+        'CA': CA()
     }
 
     # OPTIMIZER CONFIGURATION
@@ -177,8 +182,10 @@ def setup(args: Namespace):
 
     if config['CLASSIFICATION_MODE'] == 'binary':
         criterion_ = nn.BCELoss()
+        # criterion_ = EQLv2Loss(num_classes=2)
     elif config['CLASSIFICATION_MODE'] == 'multi':
         criterion_ = nn.CrossEntropyLoss()
+        # criterion_ = EQLv2Loss(num_classes=5)
 
     return net, train_ld, val_ld, optimizer_, scheduler_, criterion_, device_, SAVE_PATH_, \
         TRAINED_MODEL_PATH_, CHECKPOINT_PATH_, epoch_, best_val_criteria_, config
@@ -207,6 +214,7 @@ if __name__ == "__main__":
         # TRAIN THE MODEL
         epoch_iterator_train = tqdm(train_loader)
         train_loss = 0.0
+        loss = 0.0
         train_acc = 0
         train_true_labels = []
         train_pred_labels = []
@@ -219,10 +227,12 @@ if __name__ == "__main__":
 
             if config['CLASSIFICATION_MODE'] == 'multi':
                 loss = criterion(pred, torch.argmax(y_train, dim=1))
+                # loss = criterion(pred, y_train.float())
                 train_true_labels.append(np.argmax(y_train.cpu().detach().numpy(), axis=1))
                 train_pred_labels.append(np.argmax(pred.cpu().detach().numpy(), axis=1))
             elif config['CLASSIFICATION_MODE'] == 'binary':
                 loss = criterion(pred.squeeze(), y_train.squeeze().float())
+                # loss = criterion(pred, y_train.float())
                 train_acc += (pred >= 0.5).float().eq(y_train).sum().item()
 
             if config['REGULARIZATION'] == 'L1':  # L2 regularization
@@ -230,6 +240,7 @@ if __name__ == "__main__":
             elif config['REGULARIZATION'] == 'L2':
                 loss += 0.01 * torch.norm(model.fc.weight, 2)
 
+            # loss = loss.clone().detach().requires_grad_(True)
             loss.backward()
             optimizer.step()
             train_loss += loss.item()
@@ -263,10 +274,13 @@ if __name__ == "__main__":
 
                 if config['CLASSIFICATION_MODE'] == 'multi':
                     loss = criterion(y_pred, torch.argmax(y_val, dim=1))
+                    # loss = criterion(y_pred, y_val.float())
+                    print(loss)
                     val_true_labels.append(np.argmax(y_val.cpu().detach().numpy(), axis=1))
                     val_pred_labels.append(np.argmax(y_pred.cpu().detach().numpy(), axis=1))
                 elif config['CLASSIFICATION_MODE'] == 'binary':
                     loss = criterion(y_pred.squeeze(), y_val.squeeze().float())
+                    # loss = criterion(y_pred, y_val.float())
                     val_acc += (y_pred >= 0.5).float().eq(y_val).sum().item()
 
                 val_loss += loss.item()
