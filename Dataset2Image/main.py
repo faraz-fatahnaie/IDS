@@ -30,8 +30,8 @@ def deepinsight(param, config):
     filename_test = "test" + name + ".npy"
 
     try:
-        XGlobal = np.load(Path(config['DATASET_PATH']).joinpath(filename_train))
-        XTestGlobal = np.load(Path(config['DATASET_PATH']).joinpath(filename_test))
+        XGlobal = np.load(str(Path(config['DATASET_PATH']).joinpath(filename_train)))
+        XTestGlobal = np.load(str(Path(config['DATASET_PATH']).joinpath(filename_test)))
         print(f"Train and Test Images Loaded with the Size of {np.shape(XGlobal)} and {np.shape(XTestGlobal)},"
               f" respectively.")
         return np.array(XGlobal), np.array(XTestGlobal)
@@ -63,7 +63,7 @@ def deepinsight(param, config):
         XGlobal, image_model, toDelete = Cart2Pixel(q, q["max_A_size"], q["max_B_size"], param["Dynamic_Size"],
                                                     mutual_info=param["mutual_info"], params=param, only_model=False)
 
-        np.save(Path(config['DATASET_PATH']).joinpath(filename_train), XGlobal)
+        np.save(str(Path(config['DATASET_PATH']).joinpath(filename_train)), XGlobal)
         print("Train Images generated and train images with labels are saved with the size of:", np.shape(XGlobal))
 
         # generate testing set image
@@ -82,7 +82,7 @@ def deepinsight(param, config):
                                      image_model["A"], image_model["B"])
                            for i in range(0, x_test.shape[1])]
 
-        np.save(Path(config['DATASET_PATH']).joinpath(filename_test), XTestGlobal)
+        np.save(str(Path(config['DATASET_PATH']).joinpath(filename_test)), XTestGlobal)
         print("Test Images generated and test images with labels are saved with the size of:", np.shape(XTestGlobal))
 
         return np.array(XGlobal), np.array(XTestGlobal)
