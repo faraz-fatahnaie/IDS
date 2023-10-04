@@ -19,8 +19,10 @@ from Dataset2Image.main import deepinsight
 def evaluate(args: Namespace):
     model_path: Path = args.model
     root_path = Path(model_path).resolve().parent.parent
-    submission_name = str(model_path).split("/")[-1].split(".")[:-1]
-    submission_name = ".".join(submission_name)
+    _, submission_name = os.path.split(model_path)
+    submission_name = str(submission_name).replace('.pth', '')
+    # submission_name = str(model_path).split("/")[-1].split(".")[:-1]
+    # submission_name = ".".join(submission_name)
 
     # LOAD CONFIG FILE
     CONFIGS = open(Path(root_path).joinpath('MODEL_CONFIG.json'))
@@ -41,8 +43,10 @@ def evaluate(args: Namespace):
         X_test, y_test = parse_data(test_df, dataset_name=config['DATASET_NAME'], mode=config['DATASET_TYPE'],
                                     classification_mode=config['CLASSIFICATION_MODE'])
 
+    image_A_size = config['DEEPINSIGHT']['Max_A_Size']
+    image_B_size = config['DEEPINSIGHT']['Max_B_Size']
     test_ld = DataLoader(
-        data_utils.TensorDataset(torch.tensor(X_test.reshape((-1, 1, 14, 14))), torch.tensor(y_test)),
+        data_utils.TensorDataset(torch.tensor(X_test.reshape((-1, 1, image_A_size, image_B_size))), torch.tensor(y_test)),
         batch_size=1,
         num_workers=config['NUM_WORKER'])
 
@@ -77,13 +81,18 @@ def evaluate(args: Namespace):
         total_samples = len(test_ld.dataset)
         accuracy = accuracy / total_samples
 
-    print(metrics_evaluate(labels, preds))
-    print('ACCURACY: ', round(accuracy, 4))
-    submission = pd.DataFrame({'prediction': preds, 'label': labels, 'probability': probs})
     if not os.path.exists(root_path.joinpath('submission')):
         os.mkdir(root_path.joinpath('submission'))
-    submission_name = f'{submission_name}-TEST-ACC-{round(accuracy, 4)}-BALANCED-ACC-{round(balanced_acc, 4)}'
-    submission_file_path = Path(root_path).joinpath('submission', submission_name + '.csv')
+
+    metrics = metrics_evaluate(labels, preds)
+    with open(str(Path(root_path).joinpath('submission', f'{submission_name}-METRICS' + ".json")), "w") as fp:
+        json.dump(metrics, fp)
+    print(metrics)
+    print('ACCURACY: ', round(accuracy, 4))
+
+    submission = pd.DataFrame({'prediction': preds, 'label': labels, 'probability': probs})
+    submission_name = f'{submission_name}-TEST-ACC-{round(accuracy, 4)}'
+    submission_file_path = Path(root_path).joinpath('submission', submission_name + ".csv")
     submission.to_csv(submission_file_path, index=False)
 
     # with open(str(Path(root_path).joinpath('submission', 'MISS-CLASSIFIED-' + submission_file_name)), "wb") as fp:
