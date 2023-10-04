@@ -1,12 +1,15 @@
 import pandas as pd
 import numpy as np
 import os
+
 from imblearn.over_sampling import SMOTENC
 from imblearn.combine import SMOTEENN
 from imblearn.under_sampling import EditedNearestNeighbours
 
 from sklearn.preprocessing import StandardScaler, LabelBinarizer, MinMaxScaler
-from utils import parse_data
+from pathlib import Path
+
+from utils import parse_data, save_dataframe, sort_columns
 
 np.random.seed(0)
 
@@ -20,21 +23,6 @@ class BuildDataFrames:
         # self.augmentation = augmentation
         self.read_data_frames()
         self.classification_mode = classification_mode
-        '''
-        if augmentation == 0:
-          self.LabelMapping()
-          self.Normalization( normalization_method)
-          self.OneHotEncoding( label_feature_name= 'label')
-          self.LabelBinarize()
-          self.SaveDataFrames(version)
-        else:
-          self.LabelMapping()
-          self.Normalization( normalization_method)
-          self.AugmentationSMOTE('label')
-          self.OneHotEncoding( label_feature_name= 'label')
-          self.LabelBinarize()
-          self.SaveDataFrames(version)
-        '''
 
     def read_data_frames(self):
         feature = ["duration", "protocol_type", "service", "flag", "src_bytes",
@@ -90,8 +78,6 @@ class BuildDataFrames:
         elif self.classification_mode == 'binary':
             self.train['label'] = self.train['label'].apply(lambda x: 'attack.' if x != 'normal.' else x)
             self.test['label'] = self.test['label'].apply(lambda x: 'attack.' if x != 'normal.' else x)
-            # print(self.train['label'].value_counts())
-            # print(self.test['label'].value_counts())
         return self.train, self.test
 
     def normalization(self, normalization_method):
@@ -155,7 +141,7 @@ class BuildDataFrames:
 
         return self.train, self.test
 
-    def label_binarize(self):
+    def label_binarizing(self):
         if self.classification_mode == 'multi':
             # create an object of label binarizer, then fit on train labels
             LabelBinarizerObject_fittedOnTrainLabel = LabelBinarizer().fit(self.train['label'])
@@ -190,7 +176,7 @@ class BuildDataFrames:
         self.train = pd.concat([X_aug, y_aug], axis=1)
         return self.train
 
-    def smoteenn(self, label_feature_name):  # first do onehot encoding
+    def smoteenn(self, label_feature_name):  # first do one-hot encoding
         # column_list = list(self.train.columns)
         # feature_list = column_list.remove(label_feature_name)
         data = self.train.drop([label_feature_name], axis=1)
@@ -199,33 +185,6 @@ class BuildDataFrames:
         X_SENN_aug, y_SENN_aug = smoteenn.fit_resample(data, label)
         self.train = pd.concat([X_SENN_aug, y_SENN_aug], axis=1)
         return self.train
-
-    def picture_format(self):  # do picture_format after label_binarize
-        class_columns = ['Dos', 'Probe', 'R2L', 'U2R', 'normal'] if self.classification_mode == 'multi' else ['label']
-
-        # for train set
-        X_train = self.train.drop(class_columns, axis=1)
-        y_train = self.train[class_columns]
-
-        X_train = np.array(X_train)
-        y_train = np.array(y_train)
-        print('X_train shape is:', np.shape(X_train), '\ny_train shape is:', np.shape(y_train))
-
-        X_train = np.reshape(X_train, (X_train.shape[0], 11, 11, 1))
-        print('X_train shape is:', np.shape(X_train), '\ny_train shape is:', np.shape(y_train))
-
-        # for test set
-        X_test = self.test.drop(class_columns, axis=1)
-        y_test = self.test[class_columns]
-
-        X_test = np.array(X_test)
-        y_test = np.array(y_test)
-        print('X_test shape is:', np.shape(X_test), '\ny_test shape is:', np.shape(y_test))
-
-        X_test = np.reshape(X_test, (X_test.shape[0], 11, 11, 1))
-        print('X_test shape is:', np.shape(X_test), '\ny_test shape is:', np.shape(y_test))
-
-        return X_train, y_train, X_test, y_test
 
     def save_data_frames(self, output_path):
         train_file_name = 'train'
@@ -248,25 +207,30 @@ class BuildDataFrames:
 
 
 if __name__ == "__main__":
-    # preprocess Object is for creating normal dataset (reading, label mapping, normalization, onehot encoding with
-    # rescale train and test set, label binarize)
+    # preprocess Object is for creating normal dataset (reading, label mapping, normalization, one-hot encoding with
+    # rescale train and test set, label binarizing)
 
-    train_path = '/home/faraz/PycharmProjects/IDS/dataset/KDD_CUP99/file/original/kddcup.data_10_percent_corrected'
-    test_path = '/home/faraz/PycharmProjects/IDS/dataset/KDD_CUP99/file/corrected.gz'
-    save_path = '/home/faraz/PycharmProjects/IDS/dataset/KDD_CUP99/file/preprocessed'
-    classification_mode = 'binary'
-    # classification_mode = 'multi'
+    base_path = Path(__file__).resolve().parent.joinpath('file')
+    train_path = base_path.joinpath('original', 'kddcup.data_10_percent_corrected')
+    test_path = base_path.joinpath('original', 'corrected.gz')
+    save_path = base_path.joinpath('preprocessed')
+    # classification_mode = 'binary'
+    classification_mode = 'multi'
 
-    preprocess = BuildDataFrames(train_path=train_path, test_path=test_path, normalization_method='normalization',
+    preprocess = BuildDataFrames(train_path=str(train_path), test_path=str(test_path),
+                                 normalization_method='normalization',
                                  classification_mode=classification_mode)
 
     preprocess.label_mapping()
     normalized_train, normalized_test = preprocess.normalization(normalization_method='normalization')
     onehot_train, onehot_test = preprocess.one_hot_encoding(label_feature_name='label')
     # preprocess.smoteenn('label')
-    label_binarized_train, label_binarized_test = preprocess.label_binarize()
+    label_binarized_train, label_binarized_test = preprocess.label_binarizing()
     preprocess.save_data_frames(save_path)
-    # print(label_binarized_train)
+    train, test = preprocess.get_data_frames()
 
-    a, b = parse_data(label_binarized_train, dataset_name='KDD_CUP99', classification_mode=classification_mode)
-    print(a.shape, b.shape)
+    X, y = parse_data(train, dataset_name='KDD_CUP99', classification_mode=classification_mode)
+    print(f'train shape: x=>{X.shape}, y=>{y.shape}')
+
+    X, y = parse_data(test, dataset_name='KDD_CUP99', classification_mode=classification_mode)
+    print(f'test shape: x=>{X.shape}, y=>{y.shape}')

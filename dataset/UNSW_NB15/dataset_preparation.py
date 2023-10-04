@@ -1,9 +1,9 @@
 import pandas as pd
-import numpy as np
-import os
 
 from sklearn.preprocessing import (MinMaxScaler, LabelBinarizer)
-from utils import parse_data
+from pathlib import Path
+
+from utils import parse_data, save_dataframe, sort_columns
 
 
 class BuildDataFrames:
@@ -15,15 +15,19 @@ class BuildDataFrames:
         self.df_type = df_type
         self.classification_mode = classification_mode
         self.label_feature_name = 'attack_cat' if self.classification_mode == 'multi' else 'label'
+        # self.label_feature_name = 'attack_cat'
 
-    def ReadDataFrames(self):
+    def read_dataframe(self):
 
         cols_to_drop = ['id', 'label'] if self.classification_mode == 'multi' else ['id', 'attack_cat']
+        # cols_to_drop = ['id', 'label']
         self.DataFrame = pd.read_csv(self.df_path)
         self.DataFrame.drop(cols_to_drop, axis=1, inplace=True)
+        # if classification_m == 'binary':
+        #     self.DataFrame['attack_cat'] = self.DataFrame['attack_cat'].apply(lambda x: 'attack' if x != 'Normal' else x)
         return self.DataFrame
 
-    def Normalization(self, min_max_scaler_object=None):
+    def normalization(self, min_max_scaler_object=None):
 
         if self.df_type == 'train':
             DataFrame = self.DataFrame
@@ -47,7 +51,7 @@ class BuildDataFrames:
             self.DataFrame[numeric_col_list] = DataFrame_numeric_col_scaled
             return self.DataFrame
 
-    def OneHotEncoding(self):
+    def onehot_encoding(self):
 
         categorical_column_list = list(self.DataFrame.select_dtypes(include='object').columns)
         if self.classification_mode == 'multi':
@@ -66,7 +70,7 @@ class BuildDataFrames:
 
         return self.DataFrame, one_hot_DataFrame_cols
 
-    def RescalingBetweenTrainTest(self, train_one_hot_cols, test_one_hot_cols):
+    def column_equalization(self, train_one_hot_cols, test_one_hot_cols):
 
         if self.df_type == 'train':
             difference_test_train = list(set(test_one_hot_cols) - set(train_one_hot_cols))
@@ -96,7 +100,7 @@ class BuildDataFrames:
             else:
                 return self.DataFrame
 
-    def LabelBinarize(self, LabelBinarizerObj=None):
+    def label_binarizing(self, label_binarizer=None):
 
         if self.df_type == 'train':
             # create an object of label binarizer, then fit on train labels
@@ -115,84 +119,41 @@ class BuildDataFrames:
 
         elif self.df_type == 'test':
 
-            TestBinarizedLabel = LabelBinarizerObj.transform(self.DataFrame[self.label_feature_name])
-            TestBinarizedLabelDataFrame = pd.DataFrame(TestBinarizedLabel, columns=LabelBinarizerObj.classes_)
+            TestBinarizedLabel = label_binarizer.transform(self.DataFrame[self.label_feature_name])
+            TestBinarizedLabelDataFrame = pd.DataFrame(TestBinarizedLabel, columns=label_binarizer.classes_)
             self.DataFrame = pd.concat(
                 [self.DataFrame.drop([self.label_feature_name], axis=1), TestBinarizedLabelDataFrame],
                 axis=1)
             return self.DataFrame
 
 
-def SortColumnsBetweenTrainTest(train_df, test_df):
-    train_cols = train_df.columns
-    test_sortedBasedOnTrain = pd.DataFrame(columns=train_cols)
-    for col in test_sortedBasedOnTrain:
-        test_sortedBasedOnTrain[col] = test_df[col]
-
-    return train_df, test_sortedBasedOnTrain
-
-
-def PictureFormat(DataFrame, classification_mode: str):  # do PictureFormat after LabelBinarize and Sorting
-    # this dataset contains 10 different labels
-    class_columns = DataFrame.columns[-10:] if classification_mode == 'multi' else DataFrame.columns[-1]
-    X = DataFrame.drop(class_columns, axis=1)
-    y = DataFrame[class_columns]
-
-    X = np.array(X)
-    y = np.array(y)
-    print('Data has shape of:', np.shape(X), '\nLabel has shape of:', np.shape(y))
-
-    X = np.reshape(X, (X.shape[0], 14, 14, 1))
-    print('X shape is:', np.shape(X), '\ny shape is:', np.shape(y))
-
-    return X, y
-
-
-def SaveDataFrames(DataFrame, DataFrameType, classification_mode):
-    save_path = '/home/faraz/PycharmProjects/IDS/dataset/UNSW_NB15/file/preprocessed/'
-    file_name = DataFrameType
-    if classification_mode == 'binary':
-        file_name = file_name + '_binary'
-    elif classification_mode == 'multi':
-        file_name = file_name + '_multi'
-    train_file = os.path.join(save_path, file_name + '.csv')
-    DataFrame.to_csv(train_file, index=False)
-
-    print('Saved:', train_file)
-
-
-def SaveArray(X, y, ArrayType):
-    X_name = 'X_' + ArrayType + '.npy'
-    np.save(X_name, X)
-    y_name = 'y_' + ArrayType + '.npy'
-    np.save(y_name, y)
-
-
 if __name__ == "__main__":
-    train_path = '/home/faraz/PycharmProjects/IDS/dataset/UNSW_NB15/file/original/UNSW_NB15_training-set.csv'
-    test_path = '/home/faraz/PycharmProjects/IDS/dataset/UNSW_NB15/file/original/UNSW_NB15_testing-set.csv'
+    base_path = Path(__file__).resolve().parent.joinpath('file')
+    train_path = base_path.joinpath('original', 'UNSW_NB15_training-set.csv')
+    test_path = base_path.joinpath('original', 'UNSW_NB15_testing-set.csv')
+    save_path = base_path.joinpath('preprocessed')
     classification_m = 'binary'
     # classification_m = 'multi'
 
     # =========== TRAIN DATAFRAME PREPROCESSING ===========
-    preprocess_train = BuildDataFrames(df_path=train_path, df_type='train',
+    preprocess_train = BuildDataFrames(df_path=str(train_path), df_type='train',
                                        classification_mode=classification_m)
-    train = preprocess_train.ReadDataFrames()
-    train_normalized, min_max_scaler_obj = preprocess_train.Normalization()
-    train_one_hot, train_one_hot_cols = preprocess_train.OneHotEncoding()
+    train = preprocess_train.read_dataframe()
+    # train_normalized, min_max_scaler_obj = preprocess_train.normalization()
+    train_one_hot, train_one_hot_cols = preprocess_train.onehot_encoding()
 
     # =========== TEST DATAFRAME PREPROCESSING ===========
-    preprocess_test = BuildDataFrames(df_path=test_path, df_type='test',
+    preprocess_test = BuildDataFrames(df_path=str(test_path), df_type='test',
                                       classification_mode=classification_m)
-    test = preprocess_test.ReadDataFrames()
-    test_normalized = preprocess_test.Normalization(min_max_scaler_object=min_max_scaler_obj)
-    test_one_hot, test_one_hot_cols = preprocess_test.OneHotEncoding()
+    test = preprocess_test.read_dataframe()
+    # test_normalized = preprocess_test.normalization(min_max_scaler_object=min_max_scaler_obj)
+    test_one_hot, test_one_hot_cols = preprocess_test.onehot_encoding()
 
     # =========== FEATURE (COLUMN) EQUALIZATION BETWEEN TRAIN AND TEST DATAFRAMES  ===========
-    train_rescaled = preprocess_train.RescalingBetweenTrainTest(train_one_hot_cols=train_one_hot_cols,
-                                                                test_one_hot_cols=test_one_hot_cols)
-    test_rescaled = preprocess_test.RescalingBetweenTrainTest(train_one_hot_cols=train_one_hot_cols,
-                                                              test_one_hot_cols=test_one_hot_cols)
+    train_rescaled = preprocess_train.column_equalization(train_one_hot_cols=train_one_hot_cols,
+                                                          test_one_hot_cols=test_one_hot_cols)
+    test_rescaled = preprocess_test.column_equalization(train_one_hot_cols=train_one_hot_cols,
+                                                        test_one_hot_cols=test_one_hot_cols)
 
     # =========== CHECKING ===========
     diff_test_train = list(set(test_rescaled.columns) - set(train_rescaled.columns))
@@ -203,24 +164,19 @@ if __name__ == "__main__":
 
     # =========== LABEL BINARIZE FOR MULTI-CLASSIFICATION MODE ===========
     if classification_m == 'multi':
-        train_LabelBinerized, LabelBinerizerObj = preprocess_train.LabelBinarize()
-        test_LabelBinerized = preprocess_test.LabelBinarize(LabelBinarizerObj=LabelBinerizerObj)
-        train_temp, test_temp = train_LabelBinerized, test_LabelBinerized
+        train_label_binarized, label_binarizer_object = preprocess_train.label_binarizing()
+        test_label_binarized = preprocess_test.label_binarizing(label_binarizer=label_binarizer_object)
+        train_temp, test_temp = train_label_binarized, test_label_binarized
 
     # =========== COLUMNS ORDER EQUALIZATION FOR FURTHER PICTURE FORMATTING ===========
-    train_sorted, test_sorted = SortColumnsBetweenTrainTest(train_temp, test_temp)
-
-    # =========== CREATE 2D PICTURE ARRAYS FROM DATAFRAMES (SIMPLE METHOD) ===========
-    # X_train, y_train = PictureFormat(train_sorted, classification_m)
-    # print('=============================')
-    # X_test, y_test = PictureFormat(test_sorted, classification_m)
+    train_sorted, test_sorted = sort_columns(train_temp, test_temp)
 
     # =========== SAVE RESULTS ===========
-    SaveDataFrames(train_sorted, 'train', classification_m)
-    SaveDataFrames(test_sorted, 'test', classification_m)
-
-    # SaveArray(X_train, y_train, 'train')
-    # SaveArray(X_test, y_test, 'test')
+    save_dataframe(train_sorted, save_path, 'train', classification_m)
+    save_dataframe(test_sorted, save_path, 'test', classification_m)
 
     X, y = parse_data(train_sorted, dataset_name='UNSW_NB15', classification_mode=classification_m)
-    print(X.shape, y.shape)
+    print(f'train shape: x=>{X.shape}, y=>{y.shape}')
+
+    X, y = parse_data(test_sorted, dataset_name='UNSW_NB15', classification_mode=classification_m)
+    print(f'test shape: x=>{X.shape}, y=>{y.shape}')

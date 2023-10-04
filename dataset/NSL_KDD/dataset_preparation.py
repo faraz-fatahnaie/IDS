@@ -1,42 +1,30 @@
 import pandas as pd
 import numpy as np
 import os
+
 from imblearn.over_sampling import SMOTENC
 from imblearn.combine import SMOTEENN
 from imblearn.under_sampling import EditedNearestNeighbours
 
 from sklearn.preprocessing import StandardScaler, LabelBinarizer, MinMaxScaler
+from pathlib import Path
+
 from utils import parse_data
 
 np.random.seed(0)
 
 
 class BuildDataFrames:
-    def __init__(self, train_path: str, test_path: str, normalization_method: str, classification_mode: str = 'binary'):
+    def __init__(self, train_path: str, test_path: str, normalization_method: str, classification_mode: str = 'binary',
+                 augmentation_method: str = None):
         self.test = None
         self.train = None
         self.train_path = train_path
         self.test_path = test_path
-        # self.augmentation = augmentation
-        self.read_data_frames()
+        self.read_dataframe()
         self.classification_mode = classification_mode
-        '''
-        if augmentation == 0:
-          self.LabelMapping()
-          self.Normalization( normalization_method)
-          self.OneHotEncoding( label_feature_name= 'label')
-          self.LabelBinarize()
-          self.SaveDataFrames(version)
-        else:
-          self.LabelMapping()
-          self.Normalization( normalization_method)
-          self.AugmentationSMOTE('label')
-          self.OneHotEncoding( label_feature_name= 'label')
-          self.LabelBinarize()
-          self.SaveDataFrames(version)
-        '''
 
-    def read_data_frames(self):
+    def read_dataframe(self):
         feature = ["duration", "protocol_type", "service", "flag", "src_bytes", "dst_bytes", "land", "wrong_fragment",
                    "urgent", "hot",
                    "num_failed_logins", "logged_in", "num_compromised", "root_shell", "su_attempted", "num_root",
@@ -67,12 +55,14 @@ class BuildDataFrames:
                 'Dos', inplace=True)
             self.train.label.replace(
                 ['ftp_write', 'guess_passwd', 'imap', 'multihop', 'phf', 'spy', 'warezclient', 'warezmaster',
-                 'sendmail',
-                 'named', 'snmpgetattack', 'snmpguess', 'xlock', 'xsnoop', 'worm'], 'R2L', inplace=True)
-            self.train.label.replace(['ipsweep', 'mscan', 'nmap', 'portsweep', 'saint', 'satan'], 'Probe', inplace=True)
+                 'sendmail', 'named', 'snmpgetattack', 'snmpguess', 'xlock', 'xsnoop', 'worm'],
+                'R2L', inplace=True)
             self.train.label.replace(
-                ['buffer_overflow', 'loadmodule', 'perl', 'ps', 'rootkit', 'sqlattack', 'xterm', 'httptunnel'], 'U2R',
-                inplace=True)
+                ['ipsweep', 'mscan', 'nmap', 'portsweep', 'saint', 'satan'],
+                'Probe', inplace=True)
+            self.train.label.replace(
+                ['buffer_overflow', 'loadmodule', 'perl', 'ps', 'rootkit', 'sqlattack', 'xterm', 'httptunnel'],
+                'U2R', inplace=True)
 
             self.test.label.replace(
                 ['back', 'land', 'neptune', 'pod', 'smurf', 'teardrop', 'mailbomb', 'apache2', 'processtable',
@@ -80,19 +70,20 @@ class BuildDataFrames:
                 'Dos', inplace=True)
             self.test.label.replace(
                 ['ftp_write', 'guess_passwd', 'imap', 'multihop', 'phf', 'spy', 'warezclient', 'warezmaster',
-                 'sendmail',
-                 'named', 'snmpgetattack', 'snmpguess', 'xlock', 'xsnoop', 'worm'], 'R2L', inplace=True)
-            self.test.label.replace(['ipsweep', 'mscan', 'nmap', 'portsweep', 'saint', 'satan'], 'Probe', inplace=True)
+                 'sendmail', 'named', 'snmpgetattack', 'snmpguess', 'xlock', 'xsnoop', 'worm'],
+                'R2L', inplace=True)
             self.test.label.replace(
-                ['buffer_overflow', 'loadmodule', 'perl', 'ps', 'rootkit', 'sqlattack', 'xterm', 'httptunnel'], 'U2R',
-                inplace=True)
+                ['ipsweep', 'mscan', 'nmap', 'portsweep', 'saint', 'satan'],
+                'Probe', inplace=True)
+            self.test.label.replace(
+                ['buffer_overflow', 'loadmodule', 'perl', 'ps', 'rootkit', 'sqlattack', 'xterm', 'httptunnel'],
+                'U2R', inplace=True)
         elif self.classification_mode == 'binary':
             self.train['label'] = self.train['label'].apply(lambda x: 'attack' if x != 'normal' else x)
             self.test['label'] = self.test['label'].apply(lambda x: 'attack' if x != 'normal' else x)
         return self.train, self.test
 
     def normalization(self, normalization_method):
-        # self.train, self.test = self.ReadDataFrames()
         """
         this function takes 2 dataframe (train, test) and return normalized (train, test) by 2 method:
         normalization & standardization
@@ -115,7 +106,6 @@ class BuildDataFrames:
 
         elif normalization_method == 'standardization':
             std_scaler = StandardScaler()
-            # train_columns = self.train.columns
             train_numeric_columns = self.train.select_dtypes(include='number').columns
             for col in train_numeric_columns:
                 arr = self.train[col]
@@ -130,7 +120,7 @@ class BuildDataFrames:
 
             return self.train, self.test
 
-    def one_hot_encoding(self, label_feature_name):
+    def onehot_encoding(self, label_feature_name):
         categorical_column_list = list(self.train.select_dtypes(include='object').columns)
         categorical_column_list.remove(label_feature_name)
 
@@ -153,7 +143,7 @@ class BuildDataFrames:
 
         return self.train, self.test
 
-    def label_binarize(self):
+    def label_binarizing(self):
         if self.classification_mode == 'multi':
             # create an object of label binarizer, then fit on train labels
             LabelBinarizerObject_fittedOnTrainLabel = LabelBinarizer().fit(self.train['label'])
@@ -189,8 +179,6 @@ class BuildDataFrames:
         return self.train
 
     def smoteenn(self, label_feature_name):  # first do onehot encoding
-        # column_list = list(self.train.columns)
-        # feature_list = column_list.remove(label_feature_name)
         data = self.train.drop([label_feature_name], axis=1)
         label = self.train[label_feature_name]
         smoteenn = SMOTEENN(random_state=42, enn=EditedNearestNeighbours(sampling_strategy='auto'))
@@ -225,7 +213,14 @@ class BuildDataFrames:
 
         return X_train, y_train, X_test, y_test
 
-    def save_data_frames(self, output_path):
+    def save_dataframes(self, output_path):
+        # print(self.train.columns)
+        # one_hot_train = pd.get_dummies(self.train, columns=['label'])
+        # self.train = pd.concat([self.train.drop(['label'], axis=1), one_hot_train], axis=1)
+        # print(self.train.shape)
+        # one_hot_test = pd.get_dummies(self.test, columns=['label'])
+        # self.test = pd.concat([self.test.drop(['label'], axis=1), one_hot_test], axis=1)
+        # print(self.test.shape)
         train_file_name = 'train'
         test_file_name = 'test'
         if self.classification_mode == 'binary':
@@ -235,8 +230,8 @@ class BuildDataFrames:
             train_file_name = train_file_name + '_multi'
             test_file_name = test_file_name + '_multi'
         if output_path is not None:
-            train_file = os.path.join(output_path, train_file_name+'.csv')
-            test_file = os.path.join(output_path, test_file_name+'.csv')
+            train_file = os.path.join(output_path, train_file_name + '.csv')
+            test_file = os.path.join(output_path, test_file_name + '.csv')
             self.train.to_csv(train_file, index=False)
             self.test.to_csv(test_file, index=False)
             print('Saved:', train_file, test_file)
@@ -246,26 +241,33 @@ class BuildDataFrames:
 
 
 if __name__ == "__main__":
-    # preprocess Object is for creating normal dataset (reading, label mapping, normalization, onehot encoding with
-    # rescale train and test set, label binarize)
+    # preprocess Object is for creating normal dataset (reading, label mapping, normalization, one-hot encoding with
+    # rescale train and test set, label binarizing)
 
-    train_path = '/home/faraz/PycharmProjects/IDS/dataset/NSL_KDD/file/original/KDDTrain+.txt'
-    test_path = '/home/faraz/PycharmProjects/IDS/dataset/NSL_KDD/file/original/KDDTest+.txt'
-    test21_path = '/home/faraz/PycharmProjects/IDS/dataset/NSL_KDD/file/original/KDDTest-21.txt'
-    save_path = '/home/faraz/PycharmProjects/IDS/dataset/NSL_KDD/file/preprocessed'
-    classification_mode = 'binary'
-    # classification_mode = 'multi'
+    base_path = Path(__file__).resolve().parent.joinpath('file')
+    train_path = base_path.joinpath('original', 'KDDTrain+.txt')
+    test_path = base_path.joinpath('original', 'KDDTest+.txt')
+    test21_path = base_path.joinpath('original', 'KDDTest-21.txt')
+    save_path = base_path.joinpath('preprocessed')
 
-    preprocess = BuildDataFrames(train_path=train_path, test_path=test_path, normalization_method='normalization',
-                                 classification_mode=classification_mode)
+    # classification_m = 'binary'
+    classification_m = 'multi'
+
+    preprocess = BuildDataFrames(train_path=str(train_path),
+                                 test_path=str(test_path),
+                                 normalization_method='normalization',
+                                 classification_mode=classification_m)
 
     preprocess.label_mapping()
     normalized_train, normalized_test = preprocess.normalization(normalization_method='normalization')
-    onehot_train, onehot_test = preprocess.one_hot_encoding(label_feature_name='label')
+    onehot_train, onehot_test = preprocess.onehot_encoding(label_feature_name='label')
     # preprocess.smoteenn('label')
-    label_binarized_train, label_binarized_test = preprocess.label_binarize()
-    preprocess.save_data_frames(save_path)
-    # print(label_binarized_train)
+    label_binarized_train, label_binarized_test = preprocess.label_binarizing()
+    preprocess.save_dataframes(save_path)
+    train, test = preprocess.get_data_frames()
 
-    a, b = parse_data(label_binarized_train, dataset_name='NSL_KDD', classification_mode=classification_mode)
-    print(a.shape, b.shape)
+    X, y = parse_data(train, dataset_name='NSL_KDD', classification_mode=classification_m)
+    print(f'train shape: x=>{X.shape}, y=>{y.shape}')
+
+    X, y = parse_data(test, dataset_name='NSL_KDD', classification_mode=classification_m)
+    print(f'test shape: x=>{X.shape}, y=>{y.shape}')
