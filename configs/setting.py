@@ -26,7 +26,7 @@ def setting(config_file=None):
 
     config['EPOCHS'] = config_file['model']['epoch']
     config['BATCH_SIZE'] = config_file['model']['batch_size']
-    config['OPTIMIZER'] = config_file['model']['optim']
+    config['OPTIMIZER'] = config_file['model']['optimizer']
     config['LR'] = config_file['model']['lr']
     config['WEIGHT_DECAY'] = config_file['model']['weight_decay']
     config['SCHEDULER'] = config_file['model']['scheduler']
