@@ -68,6 +68,10 @@ def sort_columns(train_df: DataFrame, test_df: DataFrame) -> (DataFrame, DataFra
     return train_df, test_sortedBasedOnTrain
 
 
+def shuffle_dataframe(dataframe: DataFrame):
+    return dataframe.sample(frac=1).reset_index(drop=True)
+
+
 def metrics_evaluate(true_label: ndarray, pred_label: ndarray) -> dict:
     confusion_matrix = metrics.confusion_matrix(true_label, pred_label)
     metric_param = {'accuracy': metrics.accuracy_score(true_label, pred_label),
